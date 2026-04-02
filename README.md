@@ -1,7 +1,7 @@
 # Sistema E-commerce con Microservicios
 
 **Ingeniería de Software II — Entrega #1**  
-**Estudiante:** Ricardo Calderon Garcia  
+Ricardo Calderon Garcia  
 
 ---
 
@@ -218,7 +218,7 @@ ORDENES_URL=http://localhost:8003
 PAGOS_URL=http://localhost:8004
 NOTIFICACIONES_URL=http://localhost:8005
 
-INTERNAL_KEY=ecommerce_internal_key_2026
+INTERNAL_KEY=EcommerceSecretKey
 JWT_SECRET=<generado_por_artisan>
 JWT_TTL=60
 ```
