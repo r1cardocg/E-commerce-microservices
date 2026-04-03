@@ -1,24 +1,40 @@
-const request  = require('supertest');
-const mongoose = require('mongoose');
+const request = require('supertest');
 
-// Mock mongoose antes de cargar la app
-jest.mock('mongoose', () => {
-  const actual = jest.requireActual('mongoose');
-  return {
-    ...actual,
-    connect: jest.fn().mockResolvedValue(true),
-    model: jest.fn(),
-  };
-});
+// Mock mongoose ANTES de cargar la app
+jest.mock('mongoose', () => ({
+  connect:   jest.fn().mockResolvedValue(true),
+  Schema:    jest.requireActual('mongoose').Schema,
+  model:     jest.requireActual('mongoose').model,
+  connect:   jest.fn().mockResolvedValue(true),
+}));
+
+// Setear variable de entorno ANTES de cargar la app
+process.env.INTERNAL_KEY = 'ecommerce_internal_key_2026';
+process.env.MONGO_URI    = 'mongodb://127.0.0.1:27017/test';
 
 const app = require('../src/app');
 
 const HEADERS = { 'x-internal-key': 'ecommerce_internal_key_2026' };
 
+// Mock del modelo Orden
+jest.mock('../src/models/Orden', () => ({
+  find:        jest.fn(),
+  findById:    jest.fn(),
+  findByIdAndUpdate: jest.fn(),
+  create:      jest.fn(),
+}));
+
+const Orden = require('../src/models/Orden');
+
 describe('Órdenes API', () => {
+
+  test('GET /ordenes sin internal key retorna 403', async () => {
+    const res = await request(app).get('/ordenes');
+    expect(res.status).toBe(403);
+  });
+
   test('GET /ordenes retorna 200', async () => {
-    const Orden = require('../src/models/Orden');
-    Orden.find = jest.fn().mockReturnValue({
+    Orden.find.mockReturnValue({
       sort: jest.fn().mockResolvedValue([])
     });
     const res = await request(app).get('/ordenes').set(HEADERS);
@@ -43,17 +59,12 @@ describe('Órdenes API', () => {
     expect(res.status).toBe(422);
   });
 
-  test('GET /ordenes sin internal key retorna 403', async () => {
-    const res = await request(app).get('/ordenes');
-    expect(res.status).toBe(403);
-  });
-
   test('GET /ordenes/:id inexistente retorna 404', async () => {
-    const Orden = require('../src/models/Orden');
-    Orden.findById = jest.fn().mockResolvedValue(null);
+    Orden.findById.mockResolvedValue(null);
     const res = await request(app)
       .get('/ordenes/507f1f77bcf86cd799439011')
       .set(HEADERS);
     expect(res.status).toBe(404);
   });
+
 });

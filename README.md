@@ -361,7 +361,6 @@ INTERNAL_KEY=ecommerce_internal_key_2026
   "name": "Ricardo Calderon",
   "email": "ricardo@example.com",
   "password": "password123",
-  "password_confirmation": "password123"
 }
 ```
 
