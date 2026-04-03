@@ -1,0 +1,36 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log
+
+# Laravel / PHP
+vendor/
+bootstrap/cache/
+storage/logs/*.log
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+
+# Variables de entorno (nunca subir claves reales)
+.env
+!.env.example
+serviceAccountKey.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
