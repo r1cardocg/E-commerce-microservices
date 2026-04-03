@@ -3,11 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\AuthenticationException;
-use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
-use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException;
-use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -17,28 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->alias([
+            'jwt.auth' => \App\Http\Middleware\JwtMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-
-        $exceptions->render(function (RouteNotFoundException $e) {
-            return response()->json(['error' => 'No autenticado'], 401);
-        });
-
-        $exceptions->render(function (TokenExpiredException $e) {
-            return response()->json(['error' => 'Token expirado'], 401);
-        });
-
-        $exceptions->render(function (TokenInvalidException $e) {
-            return response()->json(['error' => 'Token inválido'], 401);
-        });
-
-        $exceptions->render(function (JWTException $e) {
-            return response()->json(['error' => 'Token no proporcionado'], 401);
-        });
-
-        $exceptions->render(function (AuthenticationException $e) {
-            return response()->json(['error' => 'No autenticado'], 401);
-        });
-
+        //
     })->create();
