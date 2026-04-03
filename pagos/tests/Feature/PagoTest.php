@@ -11,7 +11,7 @@ class PagoTest extends TestCase
     use RefreshDatabase;
 
     private array $headers = [
-        'X-Internal-Key' => 'ecommerce_internal_key_2026',
+        'X-Internal-Key' => 'EcommerceSecretKey',
         'Accept'         => 'application/json',
         'Content-Type'   => 'application/json',
     ];
