@@ -11,13 +11,18 @@ class MicroserviceProxy
     {
         $url = rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
 
-        $response = Http::withHeaders([
+        $headers = [
             'X-Internal-Key' => env('INTERNAL_KEY'),
             'Accept'         => 'application/json',
             'Content-Type'   => 'application/json',
-        ])
-        ->timeout(10)
-        ->{strtolower($request->method())}($url, $request->all());
+        ];
+
+        $method   = strtolower($request->method());
+        $body     = $request->all();
+
+        $response = Http::withHeaders($headers)
+            ->timeout(10)
+            ->{$method}($url, $body);
 
         return response($response->body(), $response->status())
             ->header('Content-Type', 'application/json');
