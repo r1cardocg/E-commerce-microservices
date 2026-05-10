@@ -62,7 +62,7 @@ services:
     environment:
       APP_NAME: EcommerceGateway
       APP_ENV: production
-      APP_DEBUG: "false"
+      APP_DEBUG: "true"
       APP_URL: http://localhost:8000
       APP_KEY: base64:gjnxzc6nsC8snucTeBF1pDpaVqaEbNVjOPLZiFvDBjI=
       DB_CONNECTION: mysql
