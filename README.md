@@ -622,3 +622,330 @@ pytest tests/security/security_test.py -v
 | PAGOS_URL            | Gateway        | URL del microservicio Laravel pagos |
 | NOTIFICACIONES_URL   | Gateway        | URL del microservicio Flask notif.  |
 | MONGO_URI            | Ordenes/Notif. | URI de conexion a MongoDB           |
+---
+
+## Contenerizacion y Orquestacion (Entrega 2)
+
+### Contenedores Docker
+
+Cada microservicio cuenta con su propio Dockerfile. Las bases de datos usan imagenes oficiales de Docker Hub.
+
+| Contenedor              | Imagen base           | Puerto externo | Puerto interno |
+|-------------------------|-----------------------|----------------|----------------|
+| ecommerce_gateway       | php:8.3-cli           | 8000           | 8000           |
+| ecommerce_usuarios      | python:3.11-slim      | 8001           | 8001           |
+| ecommerce_productos     | python:3.11-slim      | 8002           | 8002           |
+| ecommerce_ordenes       | node:18-alpine        | 8003           | 8003           |
+| ecommerce_pagos         | php:8.3-cli           | 8004           | 8004           |
+| ecommerce_notificaciones| python:3.11-slim      | 8005           | 8005           |
+| ecommerce_mysql         | mysql:8.0             | 3307           | 3306           |
+| ecommerce_postgres      | postgres:16-alpine    | 5433           | 5432           |
+| ecommerce_mongo         | mongo:7               | 27018          | 27017          |
+
+---
+
+### Levantar el sistema con Docker Compose
+
+#### Prerequisitos
+
+- Docker Desktop 24.x o superior instalado y corriendo
+- Git 2.x
+
+Descarga Docker Desktop en: https://www.docker.com/products/docker-desktop
+
+#### Paso 1 - Clonar el repositorio
+
+```bash
+git clone https://github.com/TU_USUARIO/E-commerce-microservices.git
+cd E-commerce-microservices
+```
+
+#### Paso 2 - Construir y levantar todos los contenedores
+
+```bash
+docker compose up -d --build
+```
+
+Este comando realiza lo siguiente:
+- Construye las imagenes de cada microservicio
+- Descarga las imagenes de MySQL, PostgreSQL y MongoDB
+- Crea la red interna ecommerce entre todos los contenedores
+- Levanta los 9 contenedores en segundo plano
+
+#### Paso 3 - Verificar que todos los contenedores esten corriendo
+
+```bash
+docker compose ps
+```
+
+Todos deben mostrar el estado Up. Ejemplo de salida esperada:
+
+```
+NAME                       STATUS          PORTS
+ecommerce_gateway          Up              0.0.0.0:8000->8000/tcp
+ecommerce_usuarios         Up              0.0.0.0:8001->8001/tcp
+ecommerce_productos        Up              0.0.0.0:8002->8002/tcp
+ecommerce_ordenes          Up              0.0.0.0:8003->8003/tcp
+ecommerce_pagos            Up              0.0.0.0:8004->8004/tcp
+ecommerce_notificaciones   Up              0.0.0.0:8005->8005/tcp
+ecommerce_mysql            Up (healthy)    0.0.0.0:3307->3306/tcp
+ecommerce_postgres         Up (healthy)    0.0.0.0:5433->5432/tcp
+ecommerce_mongo            Up              0.0.0.0:27018->27017/tcp
+```
+
+#### Paso 4 - Ejecutar migraciones
+
+```bash
+docker compose exec gateway php artisan migrate --force
+docker compose exec pagos php artisan migrate --force
+docker compose exec usuarios python manage.py migrate
+```
+
+#### Paso 5 - Verificar que el Gateway responde
+
+```bash
+curl http://localhost:8000/up
+```
+
+Debe responder con status 200.
+
+---
+
+### Comandos Docker utiles
+
+#### Ver logs de un servicio
+
+```bash
+docker compose logs gateway
+docker compose logs usuarios
+docker compose logs productos
+docker compose logs ordenes
+docker compose logs pagos
+docker compose logs notificaciones
+```
+
+#### Ver logs en tiempo real
+
+```bash
+docker compose logs -f gateway
+```
+
+#### Reiniciar un servicio especifico
+
+```bash
+docker compose restart gateway
+```
+
+#### Entrar a un contenedor
+
+```bash
+docker compose exec gateway bash
+docker compose exec usuarios bash
+docker compose exec ordenes sh
+```
+
+#### Detener todos los contenedores
+
+```bash
+docker compose down
+```
+
+#### Detener y eliminar volumenes (borra los datos)
+
+```bash
+docker compose down -v
+```
+
+#### Reconstruir las imagenes despues de cambios en el codigo
+
+```bash
+docker compose up -d --build
+```
+
+---
+
+### Probar todos los servicios con Docker
+
+Una vez levantados los contenedores y ejecutadas las migraciones, realizar las siguientes pruebas en Thunder Client o Postman.
+
+#### Prueba 1 - Registrar usuario
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/register
+Headers: Content-Type: application/json
+         Accept: application/json
+Body:
+{
+  "name": "Test Docker",
+  "email": "docker@test.com",
+  "password": "password123",
+  "password_confirmation": "password123"
+}
+```
+
+Respuesta esperada (201):
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "user": { "id": 1, "name": "Test Docker", "email": "docker@test.com" }
+}
+```
+
+#### Prueba 2 - Login y obtener token
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/login
+Headers: Content-Type: application/json
+         Accept: application/json
+Body:
+{
+  "email": "docker@test.com",
+  "password": "password123"
+}
+```
+
+Copiar el valor del campo token de la respuesta para usarlo en las siguientes pruebas.
+
+#### Prueba 3 - Crear producto
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/productos
+Headers: Authorization: Bearer <token>
+         Content-Type: application/json
+Body:
+{
+  "nombre": "Laptop Dell XPS",
+  "precio": 1200.00,
+  "stock": 50,
+  "categoria": "Tecnologia"
+}
+```
+
+Respuesta esperada (201):
+```json
+{
+  "id": 1,
+  "nombre": "Laptop Dell XPS",
+  "precio": 1200.0,
+  "stock": 50,
+  "activo": true
+}
+```
+
+#### Prueba 4 - Listar productos
+
+```
+Metodo:  GET
+URL:     http://localhost:8000/api/productos
+Headers: Authorization: Bearer <token>
+```
+
+Respuesta esperada (200):
+```json
+{ "productos": [...] }
+```
+
+#### Prueba 5 - Crear orden
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/ordenes
+Headers: Authorization: Bearer <token>
+         Content-Type: application/json
+Body:
+{
+  "usuario_id": 1,
+  "productos": [
+    {
+      "producto_id": "1",
+      "nombre": "Laptop Dell XPS",
+      "cantidad": 1,
+      "precio_unitario": 1200.00
+    }
+  ],
+  "direccion_envio": "Calle 10 # 20-30, Manizales"
+}
+```
+
+Respuesta esperada (201):
+```json
+{
+  "_id": "69cd838222e0b8cdbf1d7998",
+  "usuario_id": 1,
+  "total": 1200,
+  "estado": "pendiente"
+}
+```
+
+#### Prueba 6 - Procesar pago
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/pagos
+Headers: Authorization: Bearer <token>
+         Content-Type: application/json
+Body:
+{
+  "usuario_id": 1,
+  "orden_id": "<_id de la orden del paso anterior>",
+  "monto": 1200.00,
+  "metodo_pago": "tarjeta_credito"
+}
+```
+
+Respuesta esperada (201):
+```json
+{
+  "id": 1,
+  "estado": "completado",
+  "referencia": "uuid-generado"
+}
+```
+
+#### Prueba 7 - Crear notificacion
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/notificaciones
+Headers: Authorization: Bearer <token>
+         Content-Type: application/json
+Body:
+{
+  "usuario_id": 1,
+  "tipo": "orden_confirmada",
+  "mensaje": "Tu orden fue confirmada exitosamente"
+}
+```
+
+#### Prueba 8 - Verificar seguridad de microservicios
+
+Los microservicios deben rechazar peticiones sin la clave interna.
+
+Sin clave - debe dar 403:
+```
+Metodo:  GET
+URL:     http://localhost:8002/productos
+```
+
+Con clave - debe dar 200:
+```
+Metodo:  GET
+URL:     http://localhost:8002/productos
+Headers: X-Internal-Key: EcommerceSecretKey
+```
+
+#### Prueba 9 - Cerrar sesion
+
+```
+Metodo:  POST
+URL:     http://localhost:8000/api/logout
+Headers: Authorization: Bearer <token>
+```
+
+Respuesta esperada (200):
+```json
+{ "message": "Sesion cerrada correctamente" }
+```
